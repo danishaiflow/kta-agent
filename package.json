@@ -1,0 +1,15 @@
+{
+  "name": "kta-agent",
+  "version": "1.0.0",
+  "description": "Chat agent that reads fee/refund data from Google Sheets and responds via a simple HTTP endpoint",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.1",
+    "express": "^4.21.2",
+    "googleapis": "^144.0.0"
+  }
+}

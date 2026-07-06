@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KTA Chat Widget Demo</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; margin: 0; background: #F4F6FB; }
+  .demo-note { max-width: 700px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 10px; color: #1B2A41; }
+
+  #kta-chat-bubble {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: #2B4FD9; color: #fff; border: none;
+    font-size: 26px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    z-index: 9999;
+  }
+
+  #kta-chat-window {
+    position: fixed; bottom: 96px; right: 24px;
+    width: 340px; max-width: 90vw; height: 460px; max-height: 70vh;
+    background: #fff; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    display: none; flex-direction: column; overflow: hidden; z-index: 9999;
+  }
+  #kta-chat-header {
+    background: #121B3E; color: #fff; padding: 14px 16px;
+    font-weight: bold; font-size: 15px;
+  }
+  #kta-chat-messages {
+    flex: 1; padding: 14px; overflow-y: auto; font-size: 13.5px; color: #1B2A41;
+  }
+  .kta-msg { margin-bottom: 10px; line-height: 1.4; }
+  .kta-msg.user { text-align: right; }
+  .kta-bubble {
+    display: inline-block; padding: 8px 12px; border-radius: 10px; max-width: 80%;
+    white-space: pre-wrap;
+  }
+  .kta-msg.user .kta-bubble { background: #2B4FD9; color: #fff; }
+  .kta-msg.bot .kta-bubble { background: #F1F5FD; color: #1B2A41; }
+  #kta-chat-input-row {
+    display: flex; border-top: 1px solid #E0E6F5;
+  }
+  #kta-chat-input {
+    flex: 1; border: none; padding: 12px; font-size: 13.5px; outline: none;
+  }
+  #kta-chat-send {
+    background: #2B4FD9; color: #fff; border: none; padding: 0 18px; cursor: pointer;
+  }
+  #kta-chat-status { font-size: 11.5px; color: #5B6B8C; padding: 0 14px 8px; }
+  .kta-source { display: block; margin-top: 4px; font-size: 11px; color: #5B6B8C; }
+</style>
+</head>
+<body>
+
+<div class="demo-note">
+  <h2>KTA Chat Widget — Demo Page</h2>
+  <p>Standalone test page. To embed on your real site, copy everything between
+  <code>&lt;!-- WIDGET START --&gt;</code> and <code>&lt;!-- WIDGET END --&gt;</code>
+  into your site, just before <code>&lt;/body&gt;</code>.</p>
+  <p><strong>Already configured for local testing:</strong> webhook URL is set to
+  <code>http://localhost:5678/webhook/kta-chat</code>. Change it once you deploy n8n publicly.</p>
+</div>
+
+<!-- WIDGET START -->
+<button id="kta-chat-bubble" aria-label="Open chat">💬</button>
+
+<div id="kta-chat-window">
+  <div id="kta-chat-header">KTA Assistant</div>
+  <div id="kta-chat-messages"></div>
+  <div id="kta-chat-status"></div>
+  <div id="kta-chat-input-row">
+    <input id="kta-chat-input" type="text" placeholder="Ask about fees, subjects, admissions..." />
+    <button id="kta-chat-send">Send</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---- CONFIG: local agent endpoint (change this when you deploy publicly) ----
+  const WEBHOOK_URL = "http://localhost:3000/api/chat";
+  // Optional: if your deployment exposes a server-side ADMIN API key for writes,
+  // set it here for demo/testing only. DON'T embed a production API key in public sites.
+  const ADMIN_API_KEY_FOR_DEMO = '';
+
+  const bubble = document.getElementById("kta-chat-bubble");
+  const win = document.getElementById("kta-chat-window");
+  const messagesEl = document.getElementById("kta-chat-messages");
+  const input = document.getElementById("kta-chat-input");
+  const sendBtn = document.getElementById("kta-chat-send");
+  const statusEl = document.getElementById("kta-chat-status");
+
+  let sessionId = localStorage.getItem("kta_session_id");
+  if (!sessionId) {
+    sessionId = "kta_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    localStorage.setItem("kta_session_id", sessionId);
+  }
+
+  bubble.addEventListener("click", () => {
+    const isOpen = win.style.display === "flex";
+    win.style.display = isOpen ? "none" : "flex";
+    if (!isOpen && messagesEl.children.length === 0) {
+      addMessage("bot", "Assalam-o-Alaikum! I'm the KTA assistant. Ask me about subjects, fees, admissions, or refunds.");
+    }
+  });
+
+  function addMessage(role, text, source) {
+    const row = document.createElement("div");
+    row.className = "kta-msg " + role;
+    const bubbleEl = document.createElement("span");
+    bubbleEl.className = "kta-bubble";
+    bubbleEl.textContent = text;
+    row.appendChild(bubbleEl);
+    if (source) {
+      const sourceEl = document.createElement("span");
+      sourceEl.className = "kta-source";
+      sourceEl.textContent = `Source: ${source}`;
+      row.appendChild(sourceEl);
+    }
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+    addMessage("user", text);
+    input.value = "";
+    statusEl.textContent = "KTA assistant is typing...";
+
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (ADMIN_API_KEY_FOR_DEMO) headers['x-api-key'] = ADMIN_API_KEY_FOR_DEMO;
+      const res = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ message: text, sessionId: sessionId }),
+      });
+
+      if (!res.ok) throw new Error("Server error: " + res.status);
+
+      const data = await res.json();
+      const replyText = data.reply || data.output || "Sorry, I didn't get a response. Please try again.";
+      addMessage("bot", replyText, data.sourceTab);
+    } catch (err) {
+      addMessage("bot", "Sorry, something went wrong connecting to the assistant. Please try again shortly.");
+      console.error("KTA chat widget error:", err);
+    } finally {
+      statusEl.textContent = "";
+    }
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+})();
+</script>
+<!-- WIDGET END -->
+
+</body>
+</html>

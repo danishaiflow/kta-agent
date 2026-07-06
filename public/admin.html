@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>KTA Agent Admin</title>
+    <style>
+      body{font-family:system-ui,Segoe UI,Arial;margin:20px}
+      label{display:block;margin-top:8px}
+      input,select,button,textarea{width:100%;padding:8px;margin-top:4px}
+      .row{max-width:600px}
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <h2>KTA Admin — Enroll Student</h2>
+      <label>Admin API Key (kept in browser only)</label>
+      <input id="apiKey" placeholder="Enter ADMIN API KEY" />
+
+      <label>Student ID</label>
+      <input id="studentId" placeholder="E005" />
+
+      <label>Full name</label>
+      <input id="name" placeholder="Ayesha Malik" />
+
+      <label>Subject</label>
+      <input id="subject" placeholder="Mathematics" />
+
+      <label>Enrolled date (YYYY-MM-DD)</label>
+      <input id="enrolledDate" placeholder="2026-07-06" />
+
+      <label>Fee paid</label>
+      <input id="feePaid" placeholder="5000" />
+
+      <label>Status</label>
+      <select id="status"><option>active</option><option>pending</option><option>cancelled</option></select>
+
+      <button id="enrollBtn">Enroll (append to sheet)</button>
+
+      <pre id="out" style="margin-top:12px;background:#f6f8fa;padding:12px;border-radius:6px;white-space:pre-wrap"></pre>
+    </div>
+
+    <script>
+      const apiKeyEl = document.getElementById('apiKey');
+      const out = document.getElementById('out');
+      document.getElementById('enrollBtn').addEventListener('click', async () => {
+        const key = apiKeyEl.value.trim();
+        if (!key) return alert('Enter ADMIN API KEY');
+        const body = {
+          studentId: document.getElementById('studentId').value.trim(),
+          name: document.getElementById('name').value.trim(),
+          subject: document.getElementById('subject').value.trim(),
+          enrolledDate: document.getElementById('enrolledDate').value.trim(),
+          feePaid: document.getElementById('feePaid').value.trim(),
+          status: document.getElementById('status').value
+        };
+        out.textContent = 'Sending...';
+        try {
+          const res = await fetch('/api/enroll', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': key },
+            body: JSON.stringify(body)
+          });
+          const j = await res.json();
+          out.textContent = JSON.stringify({ status: res.status, body: j }, null, 2);
+        } catch (err) {
+          out.textContent = String(err);
+        }
+      });
+    </script>
+  </body>
+</html>
