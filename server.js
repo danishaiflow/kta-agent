@@ -14,6 +14,13 @@ app.get('/admin', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
+// Serve the main widget at root if present (fixes "Cannot GET /" on hosts)
+app.get('/', (_req, res) => {
+  const widgetPath = path.join(__dirname, 'kta-chat-widget.html');
+  if (fs.existsSync(widgetPath)) return res.sendFile(widgetPath);
+  res.send('KTA agent running. Use POST /api/chat to query.');
+});
+
 // Simple in-memory rate limiter for admin actions (per IP)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX = 30; // max requests per window per IP
