@@ -75,8 +75,8 @@
 
 <script>
 (function () {
-  // ---- CONFIG: local agent endpoint (change this when you deploy publicly) ----
-  const WEBHOOK_URL = "http://localhost:3000/api/chat";
+  // ---- CONFIG: deployed agent endpoint ----
+  const WEBHOOK_URL = "https://kta-agent.onrender.com/api/chat";
   // Optional: if your deployment exposes a server-side ADMIN API key for writes,
   // set it here for demo/testing only. DON'T embed a production API key in public sites.
   const ADMIN_API_KEY_FOR_DEMO = '';
